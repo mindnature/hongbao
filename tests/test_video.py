@@ -72,3 +72,17 @@ def test_ornament_transparency_required(tmp_path: Path):
     result = check_frames(file, kind="ornament")
     assert not result.valid
     assert any("透明" in item for item in result.issues)
+
+
+@pytest.mark.skipif(not shutil.which("ffmpeg") or not shutil.which("ffprobe"),
+                    reason="需要 FFmpeg")
+def test_transparent_ornament_end_to_end(tmp_path: Path):
+    from PIL import ImageDraw
+    original = tmp_path / "transparent.png"
+    image = Image.new("RGBA", (180, 240), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+    draw.ellipse((30, 40, 150, 200), fill=(220, 50, 60, 255))
+    image.save(original)
+    result = render_frames(original, tmp_path / "ornament.zip", duration=1, kind="ornament")
+    assert result.valid, result.issues
+    assert result.details["frames"] == 24
