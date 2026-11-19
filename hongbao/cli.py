@@ -52,9 +52,38 @@ def make_parser() -> argparse.ArgumentParser:
     prev.add_argument("cover")
     prev.add_argument("destination")
 
-    upload = sub.add_parser("upload", help="扫码后通过可见浏览器辅助上传微信平台")
+    motion = sub.add_parser("motion", help="将 Flow 视频/GIF/静态原图转换为 1–3 秒 MP4 动态封面")
+    motion.add_argument("source", help="源 MP4/MOV/GIF 或静态图片")
+    motion.add_argument("destination", help="目标 .mp4")
+    motion.add_argument("--start", type=float, default=0.0, help="视频片段起始秒数")
+    motion.add_argument("--duration", type=float, default=3.0, help="输出时长，1–3 秒")
+    motion.add_argument("--effect", choices=("zoom", "none"), default="zoom",
+                        help="仅针对静态图：轻微推镜 zoom 或纯静止 none")
+
+    vcheck = sub.add_parser("check-video", help="校验 MP4 格式、时长、码率、分辨率与帧率")
+    vcheck.add_argument("source")
+
+    poster = sub.add_parser("poster", help="为动态视频提取 PNG 预览帧")
+    poster.add_argument("source")
+    poster.add_argument("destination")
+    poster.add_argument("--at", type=float, default=0.0)
+
+    frames = sub.add_parser("frames", help="将视频/GIF/静态图导出连续命名的 PNG ZIP 序列帧")
+    frames.add_argument("source")
+    frames.add_argument("destination", help="目标 .zip")
+    frames.add_argument("--kind", choices=("cover", "ornament"), default="cover",
+                        help="cover=动态封面，ornament=透明封面挂件")
+    frames.add_argument("--start", type=float, default=0.0)
+    frames.add_argument("--duration", type=float, default=3.0)
+
+    fcheck = sub.add_parser("check-frames", help="校验动态封面/挂件 PNG 序列帧 ZIP")
+    fcheck.add_argument("source")
+    fcheck.add_argument("--kind", choices=("cover", "ornament"), default="cover")
+
+    upload = sub.add_parser("upload", help="微信平台辅助上传（动态素材需人工选择准确栏目）")
     upload.add_argument("cover")
     upload.add_argument("--short-name", required=True)
+    upload.add_argument("--kind", choices=("cover", "ornament"), default="cover")
     upload.add_argument("--profile-dir", default=".hongbao/browser-profile")
     upload.add_argument("--screenshots-dir", default=".hongbao/screenshots")
     return parser
@@ -96,9 +125,34 @@ def main(argv: list[str] | None = None) -> int:
                 return 2
         elif args.command == "preview":
             print(make_preview(args.cover, args.destination))
+        elif args.command == "motion":
+            from .video import render_motion
+            print(json.dumps(asdict(render_motion(
+                args.source, args.destination, start=args.start,
+                duration=args.duration, effect=args.effect)), ensure_ascii=False, indent=2))
+        elif args.command == "check-video":
+            from .video import check_video
+            result = check_video(args.source)
+            print(json.dumps(asdict(result), ensure_ascii=False, indent=2))
+            if not result.valid:
+                return 2
+        elif args.command == "poster":
+            from .video import make_poster
+            print(str(make_poster(args.source, args.destination, at=args.at)))
+        elif args.command == "frames":
+            from .video import render_frames
+            print(json.dumps(asdict(render_frames(
+                args.source, args.destination, kind=args.kind,
+                start=args.start, duration=args.duration)), ensure_ascii=False, indent=2))
+        elif args.command == "check-frames":
+            from .video import check_frames
+            result = check_frames(args.source, kind=args.kind)
+            print(json.dumps(asdict(result), ensure_ascii=False, indent=2))
+            if not result.valid:
+                return 2
         elif args.command == "upload":
             from .uploader import assist_upload
-            result = assist_upload(args.cover, args.short_name,
+            result = assist_upload(args.cover, args.short_name, kind=args.kind,
                                    profile_dir=args.profile_dir,
                                    screenshots_dir=args.screenshots_dir)
             print(json.dumps(result, ensure_ascii=False, indent=2))

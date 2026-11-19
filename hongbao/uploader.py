@@ -51,13 +51,40 @@ def _upload_image(page, cover: Path) -> bool:
     return True
 
 
+def _check_material(path: Path, kind: str) -> str:
+    """Validate before launching the browser, never guess a dynamic upload field."""
+    if kind not in ("cover", "ornament"):
+        raise ValueError("kind 必须是 cover 或 ornament")
+    suffix = path.suffix.lower()
+    if suffix in (".jpg", ".jpeg"):
+        if kind != "cover":
+            raise ValueError("静态 JPEG 不是透明挂件")
+        report = check_cover(path)
+        if not report.valid:
+            raise ValueError("静态文件不合格：" + "；".join(report.issues))
+        return "static-cover"
+    from .video import check_frames, check_video
+    if suffix == ".mp4":
+        if kind != "cover":
+            raise ValueError("MP4 动态封面不是透明挂件；请提供挂件 ZIP 序列帧")
+        report = check_video(path)
+        if not report.valid:
+            raise ValueError("动态 MP4 不合格：" + "；".join(report.issues))
+        return "dynamic-cover"
+    if suffix == ".zip":
+        report = check_frames(path, kind=kind)
+        if not report.valid:
+            raise ValueError("PNG 序列帧不合格：" + "；".join(report.issues))
+        return "dynamic-cover-frames" if kind == "cover" else "dynamic-ornament"
+    raise ValueError("支持 JPEG 静态封面、MP4 动态封面或 PNG 序列帧 ZIP")
+
+
 def assist_upload(cover: str | Path, short_name: str, *,
+                  kind: str = "cover",
                   profile_dir: str | Path = ".hongbao/browser-profile",
                   screenshots_dir: str | Path = ".hongbao/screenshots") -> dict:
     cover = Path(cover)
-    report = check_cover(cover)
-    if not report.valid:
-        raise ValueError("文件不合格：" + "；".join(report.issues))
+    material_type = _check_material(cover, kind)
     if not short_name.strip():
         raise ValueError("必须填写获得使用授权的封面简称")
     try:
@@ -68,7 +95,9 @@ def assist_upload(cover: str | Path, short_name: str, *,
     profile_dir, screenshots_dir = Path(profile_dir), Path(screenshots_dir)
     profile_dir.mkdir(parents=True, exist_ok=True)
     screenshots_dir.mkdir(parents=True, exist_ok=True)
-    result = {"created": False, "short_name_filled": False, "uploaded": False, "submitted": False}
+    result = {"material_type": material_type, "created": False,
+              "short_name_filled": False, "uploaded": False,
+              "submitted": False, "manual_upload_required": material_type != "static-cover"}
     print("将打开微信红包封面开放平台；请在自己的电脑上用本人微信扫码登录。")
     print("账号、密码、会话令牌不要交给本项目或第三方。")
     with sync_playwright() as p:
@@ -90,15 +119,20 @@ def assist_upload(cover: str | Path, short_name: str, *,
                 result["short_name_filled"] = _fill_short_name(page, short_name)
             except Exception as exc:
                 print(f"简称自动填写失败：{exc}")
-            try:
-                result["uploaded"] = _upload_image(page, cover)
-            except Exception as exc:
-                print(f"自动选择文件失败：{exc}")
+            if material_type == "static-cover":
+                try:
+                    result["uploaded"] = _upload_image(page, cover)
+                except Exception as exc:
+                    print(f"自动选择静态文件失败：{exc}")
+            else:
+                print("动态素材页面未经适配，为避免误传至 logo/封面故事栏目，")
+                print(f"请在动态封面或挂件对应栏目手动选择文件：{cover.resolve()}")
+                print("选择并核对平台预览后，按需自行提交。脚本不会声称已完成上传。")
             shot = screenshots_dir / "upload-page.png"
             page.screenshot(path=str(shot), full_page=False)
             result["screenshot"] = str(shot)
-            if not result["uploaded"]:
-                print("未找到唯一的封面文件输入框，可能存在Logo/故事图等多个输入；请手动上传封面。")
+            if material_type == "static-cover" and not result["uploaded"]:
+                print("未找到唯一的封面文件输入框，请手动上传封面。")
             print("程序没有点击提交审核、购买或发布。请检查页面上的所有预览和必填字段。")
             print("当前进展：", result)
             input("检查完毕后按 Enter 关闭本程序启动的浏览器：")

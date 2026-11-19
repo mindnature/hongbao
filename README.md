@@ -105,3 +105,48 @@ python -m hongbao --help
 - \`tests/\` 与 GitHub Actions：离线自动化测试
 
 本项目为 MIT 许可证。工作流概念参考 [VaneAi888/vane-gpt-image-skills](https://github.com/VaneAi888/vane-gpt-image-skills)，未复制其素材或脚本。原图、参考照片、Cookie 和任何登录态不得上传到公开仓库。
+
+
+## 7. 动态红包封面与透明挂件（新增）
+
+现在同时支持**静态封面 JPEG**和**动态封面 MP4**，以及连续命名 PNG 序列帧 ZIP。使用本功能需系统另装 FFmpeg 和 ffprobe（均加入 PATH）。浏览器 ChatGPT 生图模式不变。
+
+### Flow 视频 → 动态封面
+
+~~~powershell
+python -m hongbao motion "D:\Videos\flow10s.mp4" output/cat/dynamic.mp4 --start 2 --duration 3
+python -m hongbao check-video output/cat/dynamic.mp4
+python -m hongbao poster output/cat/dynamic.mp4 output/cat/poster.png
+~~~
+
+从下载的 Flow 视频选出 3 秒，输出 **960×1280、24fps、H.264、yuv420p MP4**，无音频，并校验 1–3 秒、≤20MB、≤3000 kbit/s 等公开规格。视频不能使用奇数宽度的 957 像素，因为 yuv420p 需要偶数宽高。
+
+### 静态原图 → 3秒轻微推镜
+
+~~~powershell
+python -m hongbao motion output/cat/cover.jpg output/cat/dynamic.mp4 --duration 3 --effect zoom
+~~~
+
+这里产生的是真实数字镜头运动，**不代表人物本身出现 AI 动态表演**。想要角色有动作，请先在 Flow 等视频工具生成视频，再转换。
+
+### PNG 序列帧 / 透明挂件
+
+~~~powershell
+python -m hongbao frames "D:\Videos\clip.gif" output/cat/cover-frames.zip --kind cover --duration 3
+python -m hongbao frames "D:\Videos\alpha.gif" output/cat/ornament.zip --kind ornament --duration 3
+python -m hongbao check-frames output/cat/ornament.zip --kind ornament
+~~~
+
+- 封面序列帧：957×1278、24–72帧、ZIP≤50MB。
+- 透明挂件：1053×1746、24–72帧、ZIP≤20MB，需真实透明通道。
+- 所有 PNG 都从 00001.png 起按播放顺序连续命名。
+- 这些规格来自公开资料转述，实际按开放平台当前要求为准。
+
+### 动态素材上传
+
+~~~powershell
+python -m hongbao upload output/cat/dynamic.mp4 --short-name "自己的账号简称"
+python -m hongbao upload output/cat/ornament.zip --kind ornament --short-name "自己的账号简称"
+~~~
+
+**重要：** 动态 MP4 和 ZIP 的网页输入框还未经过真实平台账号验证，程序会检查文件、打开网页并协助本人扫码与填写简称；**你需要亲自选择正确的动态封面/挂件字段并上传**，不能称为已实现全自动上传。详情：[动态规范与命令](docs/animation.md)。

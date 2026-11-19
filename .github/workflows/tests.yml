@@ -10,9 +10,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install
+      - name: Install Python dependencies
         run: python -m pip install -e ".[test]"
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffprobe -version
       - name: Run tests
         run: pytest -q
       - name: CLI smoke test
-        run: python -m hongbao --help
+        run: |
+          python -m hongbao --help
+          python -m hongbao motion --help
+          python -m hongbao frames --help
