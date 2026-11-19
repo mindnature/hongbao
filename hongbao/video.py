@@ -275,8 +275,8 @@ def render_frames(source: str | Path, destination: str | Path, *,
         raise ValueError("序列帧必须输出 .zip")
     if destination.exists():
         raise ValueError("输出文件已存在，拒绝覆盖")
-    source_type = _source_type(source)
     frame_count = _duration_frames(duration)
+    source_type = _source_type(source)
     width, height = FRAME_SIZES[kind]
     if kind == "ornament":
         video_filter = (
