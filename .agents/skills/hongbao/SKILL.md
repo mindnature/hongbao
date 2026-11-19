@@ -14,6 +14,18 @@ description: 按主题/照片在已登录的 ChatGPT 网页生成静态红包封
 3. python -m hongbao import "下载图片路径" --output-dir output/cat。生成 cover.jpg（957×1278、500KB 内）、preview.png。
 4. 如果用户明确要求辅助上传：python -m hongbao upload output/cat/cover.jpg --short-name "本人有权使用的简称"。本人扫码；未知页面由本人操作，最终提交需本人确认。
 
+
+## 路线 B0：静态图片直接生成程序化动画 MP4（无需 Flow）
+
+用户只提供图片但希望动态红包时，优先考虑 animate，避免强制使用 Flow。它只绘制镜头运动、边缘灯笼、金粉、薄雾、花瓣和伪视差，不会把图片中的人物变成真实动作。
+
+    python -m hongbao animate output/cat/cover.jpg output/cat/dynamic.mp4 --preset festive-glow --duration 3 --intensity 0.55 --poster output/cat/poster.png
+    python -m hongbao check-video output/cat/dynamic.mp4
+
+预设：zoom、pan、festive-glow、sparkle、petals、lantern-sway、cloud-drift、parallax。推荐强度 0.3–0.6；可用 --seed 固定装饰粒子布局，--focus-x / --focus-y 调整裁切中心。输出 960×1280、H.264、yuv420p、24fps、1–3 秒、无音轨；需要本机 FFmpeg + ffprobe，默认不调用 API。
+
+务必区分实际能力：lantern-sway 绘制边缘摇曳小灯笼，不能识别原画里的灯笼；cloud-drift 为新增边缘薄雾；parallax 为软遮罩伪视差而非自动语义分层。任何新增元素可能覆盖画面边缘内容，应检查预览。真实人物运动仍应使用视频生成工具先完成，再用 motion 转码。微信动态素材网页上传仍需用户本人选栏位，不可声称已自动完成审核。
+
 ## 路线 B：动态 MP4 封面
 
 动态封面推荐 1–3 秒；从 Flow、其他视频或 GIF 选择 3 秒片段转码：
@@ -63,4 +75,4 @@ MP4 与 PNG 序列帧转码需操作系统安装 FFmpeg + ffprobe，两者都要
 - 不把 MP4 的宽度强制改为静态封面的 957 像素：H.264 yuv420p 需要偶数宽高，输出视频 960×1280；PNG 帧使用 957×1278。
 - 上传规则、账号资格、版权材料、AI 生成材料要求，以微信当前平台页面为准。
 - 工作区输出中的照片、视频与 Cookie 不得进入公开 Git 仓库。
-- 阅读 README.md、docs/animation.md 与 docs/platform.md。
+- 阅读 README.md、docs/animation.md、docs/animation-presets.md 与 docs/platform.md。

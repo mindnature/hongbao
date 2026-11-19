@@ -150,3 +150,21 @@ python -m hongbao upload output/cat/ornament.zip --kind ornament --short-name "�
 ~~~
 
 **重要：** 动态 MP4 和 ZIP 的网页输入框还未经过真实平台账号验证，程序会检查文件、打开网页并协助本人扫码与填写简称；**你需要亲自选择正确的动态封面/挂件字段并上传**，不能称为已实现全自动上传。详情：[动态规范与命令](docs/animation.md)。
+
+
+## 8. V0.4.0｜不用 Flow 的静态图动画引擎
+
+ChatGPT 网页生成原图后，保存并执行 hongbao import，就可以使用新命令 animate 在本地生成短时动态 MP4。无需另外支付视频生成 API 费用，需安装 FFmpeg（含 ffprobe）。
+
+    python -m hongbao animate output/cat/cover.jpg output/cat/festive.mp4 --preset festive-glow --duration 3 --poster output/cat/poster.png
+    python -m hongbao animate output/cat/cover.jpg output/cat/petals.mp4 --preset petals --intensity 0.4
+    python -m hongbao animate output/cat/cover.jpg output/cat/cloud.mp4 --preset cloud-drift
+    python -m hongbao animate output/cat/cover.jpg output/cat/parallax.mp4 --preset parallax
+
+8 种预设：zoom、pan、festive-glow、sparkle、petals、lantern-sway、cloud-drift、parallax。支持 --duration 1..3、--intensity 0..1、--seed、--focus-x、--focus-y 和可选 --poster 导出预览帧。
+
+程序通过 Pillow 生成帧，用 FFmpeg 编码 H.264 / yuv420p / 960×1280 / 24fps / 无音轨 MP4，生成后调用已有的 check-video。不会覆盖已有文件。
+
+这是程序化装饰动画：新增边缘灯笼、云雾、花瓣并非识别和移动原图中的真实物体；parallax 是软遮罩伪视差，不保证真实图层分离。如需人物眨眼、宠物跳跃等自然动作，仍要用 Flow 或其他视频生成工具制作后再运行 motion 转码。
+
+详细使用说明：docs/animation-presets.md。微信实际上传与审核以官方平台为准，动态 MP4 上传控件仍需本人验证并手动选择。
