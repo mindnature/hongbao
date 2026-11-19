@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.env
+.env.*
+!.env.example
+output/
+.hongbao/
+playwright-report/
+test-results/
+*.egg-info/
+dist/
+build/
+.DS_Store
