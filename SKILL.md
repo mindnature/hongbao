@@ -1,43 +1,41 @@
 ---
 name: hongbao
-description: 生成微信红包封面。支持主题描述或参考照片，使用 GPT Image 2.6 生成、规范化导出、模拟预览，并在用户本人扫码登录后辅助在微信红包封面开放平台上传。适用于想制作个人、宠物、节庆或品牌红包封面的用户。
+description: 使用已登录的 ChatGPT 网页或可选 API 按主题/参考照片创作微信红包封面，自动规范化图片、预览，并辅助微信平台上传。
 ---
 
-# Hongbao · 微信红包封面
+# Hongbao · 微信红包封面（网页版优先）
 
-工作原则：默认一张；先完成作品，再导出；实际上传要求与平台网页提示优先。本 Skill 不是微信官方产品，不能保证平台资格或审核结果。
+默认无需 API Key。用户已在 Chrome（或其他默认浏览器）登录 ChatGPT 时，首选 **网页交接模式**。不要将 ChatGPT 网页视作免费 API，不做自动爬取图片、不提取 Cookie、不尝试绕过验证码或网页保护措施。
 
-## 先识别用户意图
+## 基本流程
 
-- 文字主题：询问或自行确定主要主体、艺术风格、配色。
-- 参考照片：只有用户有使用权或取得同意时才编辑；不能假定持有商标、肖像或版权授权。
-- 用户未明确要求上传时，停留在预览和导出。
-- 用户要求上传时：先检查产物，再启动本人扫码登录和浏览器辅助上传；决不索取微信密码、导出会话令牌、绕过验证码或代替用户最终提交审核。
-- 可以生成原图、规范化上传图、模拟预览图，三者分别保存，不将预览图上传。
+1. 用户给出主题、风格，或提供有权使用的照片。默认仅创作一张完整 3:4 竖版艺术原图，主体置中，避免顶部/底部 UI 遮挡，不绘制红包按钮或二维码。
+2. 从项目根目录运行：python -m hongbao chatgpt --theme "春节橘猫抱金元宝" --style "东方剪纸" --output-dir output/fortune-cat
+   如使用参考图，添加 --reference "/绝对路径/我的猫.jpg"。
+3. 命令生成 prompt.txt，尝试复制到系统剪贴板，并打开 https://chatgpt.com/ 到默认浏览器。已有登录状态的浏览器可继续使用，但本工具不会读取或接管其登录态。
+4. 用户在 ChatGPT 网页粘贴提示词（自动复制不可用时从 prompt.txt 复制），并自行上传参考照片（如有）。请用户在网页生成并确认原图，然后点击保存，把图片下载到自己的电脑。**不让脚本抓取 ChatGPT 生成图片的 URL、页面状态或会话**。
+5. 对用户保存的本地原图运行：python -m hongbao import "下载图片完整路径" --output-dir output/fortune-cat。工具自动复制原图、导出 957×1278 JPEG（<=500000 字节）、检查编码与体积、制作本地示意预览。若同名结果已经存在，默认不覆盖；用户确实要替换时加 --overwrite。
+6. 先展示原图、cover.jpg、preview.png 给用户确认。预览仅是示意，并非微信官方裁切。
+7. 若用户明确要求上传并具有平台资格，安装浏览器可选依赖后运行：python -m hongbao upload output/fortune-cat/cover.jpg --short-name "有使用权的简称"。微信账号由用户本人扫码完成；程序尝试处理稳定字段。未识别的表单让用户接管；不自动提交审核或购买/发放。
+8. 交付生成结果与真实执行状态，不得声称网页端已自动生成/下载或微信平台已上传成功，除非实际核实。
 
-## 环境检查
+## 安装
 
-从项目根目录安装：
+    python -m pip install -e .
 
-    python -m pip install -e ".[images,browser]"
+仅上传微信平台的 Playwright 浏览器功能另需：
+
+    python -m pip install -e ".[browser]"
     python -m playwright install chromium
 
-需要 OPENAI_API_KEY 才能用本项目自带的图像 API 调用，调用可能计费。若 Codex 当前环境已有经过授权的图像生成工具，也可用该工具生成原始图片，再通过本项目 export/check/preview/upload，不必使用 OpenAI API。
+API 是显式可选方案：若用户要求 API 模式并自行配置 OPENAI_API_KEY，使用 python -m hongbao generate --theme "..." --output output/original.png。API 调用单独计费，不是 ChatGPT 订阅内额度。
 
-## 推荐工作流
+## 安全与兼容
 
-1. 确定主题、风格，设计为 3:4 竖版原画。画面不能绘制微信界面的头像、打开按钮、官方 Logo 或二维码；主体远离遮挡区，减少文字。
-2. 有 API key：执行 python -m hongbao generate --theme "主题" --style "风格" --output output/original.png；参考照加 --reference /path/to/photo.jpg。没有图像工具和 key 时，明确说明无法生成，不要伪称已生成。
-3. 展示生成的原图。若用户要求连续制作，可自动继续；否则先请用户确认。
-4. 执行 python -m hongbao export output/original.png output/cover.jpg，再执行 python -m hongbao check output/cover.jpg。
-5. 执行 python -m hongbao preview output/cover.jpg output/preview.png；向用户明确预览仅为近似演示。
-6. 用户同意上传且有平台注册资格时：python -m hongbao upload output/cover.jpg --short-name "获授权的简称"。在本机浏览器由本人扫码；程序尝试导航及上传。未识别的字段由用户人工完成，不自动提交审核、付款或发布。
-7. 交付原图、上传 JPEG、预览 PNG、检查结果和平台完成情况，说明任何未自动化/未验证的环节。
-
-## 约束
-
-- JPEG 默认 957×1278，文件不超过 500,000 bytes，安全区和具体规格仍以平台当前提示为准。
-- 任何敏感登录状态仅可保留在本机 .hongbao/ 浏览器目录，严禁上传到 Git 仓库或发给第三方。
-- 审核不通过时依据平台驳回理由修改，不要规避风控。
-- 如果微信网站 UI 变化使定位器失效，停止对应自动操作，让用户接管网页，不能随意猜测按钮。
-- 请阅读 README.md 和 docs/platform.md 的最新限制。
+- 不能直接接管用户正常 Chrome 默认配置、读取 Cookies 或复制用户资料。
+- 使用操作系统默认浏览器打开网页，不强制新建或复制 Chrome Profile。Chrome 136 及更新版本限制默认配置的 CDP 调试，不要试图规避。
+- ChatGPT 网站布局变化不影响 prepare/import，因为它们不依赖网站 DOM。
+- 参考照片路径仅记录在本地工作目录的 job.json，注意其隐私；禁止上传该工作目录到公开仓库。
+- 微信上传可能需要另一个 Playwright 专用浏览器及本人首次扫码，不能假定它共享 Chrome 的 ChatGPT 登录状态。
+- 规则与尺寸以微信当前平台页面为准；本地检查不能保证审核通过。
+- 细节参考 README.md、docs/chatgpt-web.md 和 docs/platform.md。
