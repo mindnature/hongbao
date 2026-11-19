@@ -52,6 +52,22 @@ def make_parser() -> argparse.ArgumentParser:
     prev.add_argument("cover")
     prev.add_argument("destination")
 
+
+    animation = sub.add_parser("animate", help="不需要 Flow：静态图片直接生成程序化动画 MP4")
+    animation.add_argument("source", help="静态 PNG/JPEG/WebP")
+    animation.add_argument("destination", help="新的 MP4 文件名")
+    animation.add_argument("--preset", choices=(
+        "zoom", "pan", "festive-glow", "sparkle", "petals",
+        "lantern-sway", "cloud-drift", "parallax",
+    ), default="festive-glow")
+    animation.add_argument("--duration", type=float, default=3.0, help="1–3 秒")
+    animation.add_argument("--fps", type=int, choices=(24,), default=24)
+    animation.add_argument("--intensity", type=float, default=0.55, help="效果强度 0–1")
+    animation.add_argument("--seed", type=int, default=7, help="粒子与花瓣随机种子")
+    animation.add_argument("--focus-x", type=float, default=0.5, help="横向裁切焦点 0–1")
+    animation.add_argument("--focus-y", type=float, default=0.5, help="纵向裁切焦点 0–1")
+    animation.add_argument("--poster", help="可选：同时导出 PNG 预览帧")
+
     motion = sub.add_parser("motion", help="将 Flow 视频/GIF/静态原图转换为 1–3 秒 MP4 动态封面")
     motion.add_argument("source", help="源 MP4/MOV/GIF 或静态图片")
     motion.add_argument("destination", help="目标 .mp4")
@@ -125,6 +141,15 @@ def main(argv: list[str] | None = None) -> int:
                 return 2
         elif args.command == "preview":
             print(make_preview(args.cover, args.destination))
+        elif args.command == "animate":
+            from .animate import render_animated_cover
+            result = render_animated_cover(
+                args.source, args.destination, preset=args.preset,
+                duration=args.duration, fps=args.fps, intensity=args.intensity,
+                seed=args.seed, focus_x=args.focus_x, focus_y=args.focus_y,
+                poster=args.poster,
+            )
+            print(json.dumps(asdict(result), ensure_ascii=False, indent=2))
         elif args.command == "motion":
             from .video import render_motion
             print(json.dumps(asdict(render_motion(
