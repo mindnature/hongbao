@@ -17,6 +17,7 @@ def make_parser() -> argparse.ArgumentParser:
     web = sub.add_parser("chatgpt", help="默认网页版：准备提示词并打开已登录的默认浏览器")
     web.add_argument("--theme", required=True)
     web.add_argument("--style", default="")
+    web.add_argument("--mode", choices=("still", "gif"), default="still", help="动态图请选择 gif")
     web.add_argument("--reference", help="仅在本机保存路径；需在 ChatGPT 网页手动上传")
     web.add_argument("--output-dir", default="output/chatgpt")
     web.add_argument("--no-open", action="store_true", help="不自动打开 ChatGPT 网页")
@@ -68,6 +69,14 @@ def make_parser() -> argparse.ArgumentParser:
     animation.add_argument("--focus-y", type=float, default=0.5, help="纵向裁切焦点 0–1")
     animation.add_argument("--poster", help="可选：同时导出 PNG 预览帧")
 
+    gif = sub.add_parser("gif2mp4", help="检查多帧 GIF 并转为短视频 MP4")
+    gif.add_argument("source", help="下载的动画 .gif")
+    gif.add_argument("destination", help="生成的 .mp4 路径")
+    gif.add_argument("--duration", type=float, default=3.0, help="时长 1–3 秒；短 GIF 自动循环")
+
+    gifcheck = sub.add_parser("check-gif", help="检查 GIF 的帧数、时长和解码状态")
+    gifcheck.add_argument("source")
+
     motion = sub.add_parser("motion", help="将 Flow 视频/GIF/静态原图转换为 1–3 秒 MP4 动态封面")
     motion.add_argument("source", help="源 MP4/MOV/GIF 或静态图片")
     motion.add_argument("destination", help="目标 .mp4")
@@ -112,11 +121,11 @@ def main(argv: list[str] | None = None) -> int:
             from .chatgpt_web import prepare_chatgpt_job
             result = prepare_chatgpt_job(
                 args.theme, args.output_dir, style=args.style,
-                reference=args.reference, open_browser=not args.no_open,
-                copy_clipboard=not args.no_copy)
+                reference=args.reference, mode=args.mode,
+                open_browser=not args.no_open, copy_clipboard=not args.no_copy)
             print(json.dumps(result, ensure_ascii=False, indent=2))
             print("请在网页中粘贴 prompt.txt 的内容；如果提供了照片，请自行上传。")
-            print("在 ChatGPT 保存原图后，用 import 命令导入本地文件。")
+            print("GIF 模式下载后运行 gif2mp4；静态模式下载后运行 import。")
         elif args.command == "import":
             from .chatgpt_web import import_chatgpt_image
             result = import_chatgpt_image(
@@ -149,6 +158,16 @@ def main(argv: list[str] | None = None) -> int:
                 seed=args.seed, focus_x=args.focus_x, focus_y=args.focus_y,
                 poster=args.poster,
             )
+            print(json.dumps(asdict(result), ensure_ascii=False, indent=2))
+        elif args.command == "check-gif":
+            from .gif_workflow import check_gif
+            result = check_gif(args.source)
+            print(json.dumps(asdict(result), ensure_ascii=False, indent=2))
+            if not result.valid:
+                return 2
+        elif args.command == "gif2mp4":
+            from .gif_workflow import gif_to_mp4
+            result = gif_to_mp4(args.source, args.destination, duration=args.duration)
             print(json.dumps(asdict(result), ensure_ascii=False, indent=2))
         elif args.command == "motion":
             from .video import render_motion
