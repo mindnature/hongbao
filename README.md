@@ -6,6 +6,25 @@ Hongbao 是一个开源 Codex Skill。**默认使用已登录的 ChatGPT 网页�
 
 > 不是微信官方产品。现阶段网页版生图为**人工操作网页 + 本地自动处理**，不是后台自动调用 ChatGPT 网站，也没有从浏览器抓取输出的功能。微信上传页面未完成真实端到端验证，审核是否通过以官方平台为准。
 
+## 动态红包首选：ChatGPT GIF → MP4
+
+ChatGPT Images 2.6 支持 GIF，但目前功能仍在逐步开放，实际以你当前登录的 ChatGPT 是否能生成并保存 GIF 为准。Hongbao 不需要 API Key，也不读取 Chrome Cookie 或抓取 ChatGPT 页面产物。
+
+    # 在 ChatGPT 网页准备真正多帧 GIF 的生成提示词
+    python -m hongbao chatgpt --mode gif --theme "东方凤凰在祥云间舒展羽翼" --style "东方鎏金" --output-dir output/phoenix
+
+    # 在 ChatGPT 手动保存 GIF 后，本地检查并转 MP4
+    python -m hongbao check-gif "C:\Users\me\Downloads\phoenix.gif"
+    python -m hongbao gif2mp4 "C:\Users\me\Downloads\phoenix.gif" output/phoenix/dynamic.mp4 --duration 3
+    python -m hongbao check-video output/phoenix/dynamic.mp4
+    python -m hongbao poster output/phoenix/dynamic.mp4 output/phoenix/poster.png
+
+check-gif 会检查是否为真正的多帧 GIF、帧数和时长；gif2mp4 复用原有 motion/FFmpeg 转码功能，输出 960×1280、24fps、H.264、yuv420p、无音轨 MP4。短动图循环至指定时长（1–3 秒），长动图按时长截取。不覆盖原始 GIF 或已有 MP4。
+
+推荐顺序：真正的 ChatGPT GIF 动画优先；若 GIF 功能未开放或只有静态图片，再用静态图 + animate；复杂镜头可用 Flow + motion。GIF 转 MP4 不能修复 GIF 的色带、循环跳变或人物形变。GIF 是输入，不应当作微信动态 MP4 上传文件；平台最终审核仍以真实页面为准。
+
+详细说明：docs/gif-first.md。
+
 ## 1. 安装到 Codex
 
 可直接向 Codex 说：

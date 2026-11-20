@@ -7,6 +7,22 @@ description: 按主题/照片在已登录的 ChatGPT 网页生成静态红包封
 
 默认无需 API Key。默认使用已登录 ChatGPT 网页交接：Codex 生成提示词并打开默认浏览器；用户自行粘贴、上传参考照和保存原图；程序负责本地处理。不要抓取 ChatGPT 网页生成输出、Cookie，不绕过任何验证码。
 
+## 动态封面默认首选：ChatGPT 多帧 GIF → MP4
+
+当用户需要动态红包封面，默认先尝试 ChatGPT 网页 GIF 功能，而不是优先使用静态图 animate 或要求 Flow。ChatGPT Images 2.6 GIF 功能仍在逐步开放；如果当前用户账号没有该能力，不要假称已生成 GIF，改用下述 animate 回退方案。
+
+1. 执行 python -m hongbao chatgpt --mode gif --theme "春节凤凰" --style "东方鎏金" --output-dir output/phoenix，生成专用循环动画提示词，并用默认浏览器打开 ChatGPT。
+2. 用户自行粘贴 prompt.txt 并上传授权参考照（如有），生成真正多帧循环 GIF，再保存本机。不要抓取 Chrome Cookie、私有 API 或自动提取网页资源。
+3. 下载后依次执行：
+   python -m hongbao check-gif "下载动画.gif"
+   python -m hongbao gif2mp4 "下载动画.gif" output/phoenix/dynamic.mp4 --duration 3
+   python -m hongbao check-video output/phoenix/dynamic.mp4
+   python -m hongbao poster output/phoenix/dynamic.mp4 output/phoenix/poster.png
+4. 检查 GIF 的实际帧数与时长、角色一致性、循环衔接与关键内容遮挡，不将原 GIF 当成可直接上传的微信 MP4。
+5. 确认后才能进入微信网页辅助上传；动态素材字段仍由用户手动选择，最终审核、购买和发放需本人确认。
+
+顺序：GIF 动画优先；ChatGPT GIF 尚未开放则使用静态图 + animate；需要复杂镜头或真实动作时可使用 Flow + motion。保留所有原有命令。
+
 ## 路线 A：静态封面
 
 1. 主题或授权照片：python -m hongbao chatgpt --theme "春节橘猫抱元宝" --style "东方剪纸" --output-dir output/cat（参考照加 --reference 照片路径）。
@@ -17,7 +33,7 @@ description: 按主题/照片在已登录的 ChatGPT 网页生成静态红包封
 
 ## 路线 B0：静态图片直接生成程序化动画 MP4（无需 Flow）
 
-用户只提供图片但希望动态红包时，优先考虑 animate，避免强制使用 Flow。它只绘制镜头运动、边缘灯笼、金粉、薄雾、花瓣和伪视差，不会把图片中的人物变成真实动作。
+当用户只有静态图片或 ChatGPT GIF 功能尚未开放时，才将 animate 作为回退方案。它只绘制镜头运动、边缘灯笼、金粉、薄雾、花瓣和伪视差，不会把图片中的人物变成真实动作。
 
     python -m hongbao animate output/cat/cover.jpg output/cat/dynamic.mp4 --preset festive-glow --duration 3 --intensity 0.55 --poster output/cat/poster.png
     python -m hongbao check-video output/cat/dynamic.mp4
