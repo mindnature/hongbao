@@ -17,9 +17,32 @@ CHATGPT_URL = "https://chatgpt.com/"
 DEFAULT_DIR = "output/chatgpt"
 
 
-def build_chatgpt_prompt(theme: str, style: str = "", has_reference: bool = False) -> str:
+def build_chatgpt_prompt(theme: str, style: str = "", has_reference: bool = False,
+                         mode: str = "still") -> str:
     if not theme.strip():
         raise ValueError("主题不能为空")
+    if mode not in ("still", "gif"):
+        raise ValueError("mode 必须为 still 或 gif")
+    if mode == "gif":
+        lines = [
+            "请使用 ChatGPT Images 的 GIF 动画生成功能，直接生成真正可下载的多帧循环 GIF；不要只给文字、单张图片或静态九宫格。",
+            "如我的账号尚未开放 GIF 生成功能，请直接说明，不要把静态图伪称为 GIF。",
+            "用途：微信动态红包封面艺术创作，竖版 3:4，完整独立画作，不是微信界面截图。",
+            f"主题：{theme.strip()}。",
+        ]
+        if style.strip():
+            lines.append(f"风格：{style.strip()}。")
+        if has_reference:
+            lines.append("我会上传自己拥有使用权的参考照片，请保持其主体、人物或宠物的可辨识特征在每一帧稳定。")
+        lines.extend([
+            "请创作约 2–3 秒、首尾自然衔接的无缝循环动画，动作真实可辨而克制。",
+            "让主题中的局部元素运动，比如花瓣飘落、祥云轻移、凤凰缓缓舒翼、灯笼轻晃、鎏金闪烁；避免整张画面仅做推镜。",
+            "不要让角色变脸、肢体畸变、背景忽明忽暗、动作跳切、物体凭空消失。",
+            "关键主体、脸部和精细装饰避开顶部约 20% 和底部约 18% 的可能遮挡区。",
+            "禁止二维码、微信红包 UI、商标、水印、文字字幕、拼图及边框。",
+            "请直接生成一张可以保存到本地的真正动态 GIF 文件，我会在本地将其转换为 MP4。",
+        ])
+        return "\n".join(lines)
     lines = [
         "请直接使用 ChatGPT 的图片生成功能创作一张全新图片，不要仅给我文字提示词。",
         "用途：中国微信红包封面的原创艺术原画，竖版 3:4 构图，",
@@ -64,8 +87,9 @@ def copy_to_clipboard(text: str) -> bool:
 
 def prepare_chatgpt_job(theme: str, directory: str | Path = DEFAULT_DIR, *,
                         style: str = "", reference: str | Path | None = None,
-                        open_browser: bool = True, copy_clipboard: bool = True) -> dict:
-    prompt = build_chatgpt_prompt(theme, style, has_reference=bool(reference))
+                        mode: str = "still", open_browser: bool = True,
+                        copy_clipboard: bool = True) -> dict:
+    prompt = build_chatgpt_prompt(theme, style, has_reference=bool(reference), mode=mode)
     reference_path: Path | None = None
     if reference is not None:
         reference_path = Path(reference).expanduser()
@@ -83,6 +107,7 @@ def prepare_chatgpt_job(theme: str, directory: str | Path = DEFAULT_DIR, *,
     prompt_path.write_text(prompt, encoding="utf-8")
     manifest = {
         "workflow": "chatgpt-web-handoff",
+        "mode": mode,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "theme": theme,
         "style": style,
@@ -102,8 +127,13 @@ def prepare_chatgpt_job(theme: str, directory: str | Path = DEFAULT_DIR, *,
         "browser_open_requested": open_browser,
         "browser_open_succeeded": opened,
         "chatgpt_url": CHATGPT_URL,
-        "next": f'在 ChatGPT 中粘贴提示词，手动上传参考图片（如有），生成后点击保存。'
-                f'然后运行：python -m hongbao import "下载图片路径" --output-dir "{directory}"',
+        "next": (
+            (f'在 ChatGPT 网页生成 GIF 并手动下载，然后运行：'
+             f'python -m hongbao gif2mp4 "下载的动画.gif" "{directory / "dynamic.mp4"}" --duration 3')
+            if mode == "gif" else
+            (f'在 ChatGPT 网页生成静态图并手动下载，然后运行：'
+             f'python -m hongbao import "下载图片路径" --output-dir "{directory}"')
+        ),
     }
 
 
