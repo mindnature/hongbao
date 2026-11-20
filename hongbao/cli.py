@@ -14,6 +14,43 @@ def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="hongbao", description="微信红包封面创作和辅助上传")
     sub = parser.add_subparsers(dest="command", required=True)
 
+    sticker = sub.add_parser("sticker", help="表情包：纯文字主题或参考图双模式，在 ChatGPT 网页生成一枚表情")
+    input_mode = sticker.add_mutually_exclusive_group(required=True)
+    input_mode.add_argument("--theme", help="纯文字原创角色与主题")
+    input_mode.add_argument("--reference", help="本地参考图路径；用户在 ChatGPT 网页手动上传")
+    sticker.add_argument("--emotion", default="开心", help="情绪/动作，如 无语、抱抱、哈哈")
+    sticker.add_argument("--text", default="", help="可选表情字幕")
+    sticker.add_argument("--style", default="精致可爱、形象统一")
+    sticker.add_argument("--animated", action="store_true", help="生成多帧 GIF 而不是静态 PNG")
+    sticker.add_argument("--output-dir", default="output/sticker")
+    sticker.add_argument("--no-open", action="store_true")
+    sticker.add_argument("--no-copy", action="store_true")
+
+    pack = sub.add_parser("sticker-pack", help="批量生成逐枚表情提示词，支持文字/参考图双模式")
+    pack_input = pack.add_mutually_exclusive_group(required=True)
+    pack_input.add_argument("--theme")
+    pack_input.add_argument("--reference")
+    pack.add_argument("--emotions", required=True, help='英文逗号分隔，如 "哈哈,无语,抱抱,点赞"')
+    pack.add_argument("--style", default="精致可爱、形象统一")
+    pack.add_argument("--animated", action="store_true")
+    pack.add_argument("--output-dir", default="output/sticker-pack")
+    pack.add_argument("--no-open", action="store_true")
+    pack.add_argument("--no-copy", action="store_true")
+
+    sticker_import = sub.add_parser("sticker-import", help="导入下载的 PNG/GIF，生成微信表情规格文件")
+    sticker_import.add_argument("source")
+    sticker_import.add_argument("--output-dir", default="output/sticker")
+    sticker_import.add_argument("--max-bytes", type=int, default=500_000)
+
+    sticker_export = sub.add_parser("sticker-export", help="将图片/GIF 输出为 240×240 PNG/GIF")
+    sticker_export.add_argument("source")
+    sticker_export.add_argument("destination")
+    sticker_export.add_argument("--max-bytes", type=int, default=500_000)
+
+    sticker_check = sub.add_parser("sticker-check", help="检查表情格式、尺寸、大小、透明度")
+    sticker_check.add_argument("source")
+    sticker_check.add_argument("--max-bytes", type=int, default=500_000)
+
     dynamic = sub.add_parser("dynamic", help="动态红包：让 ChatGPT 网页直接生成 GIF（默认动态入口）")
     dynamic.add_argument("--theme", required=True)
     dynamic.add_argument("--style", default="")
@@ -130,7 +167,41 @@ def make_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = make_parser().parse_args(argv)
     try:
-        if args.command in ("chatgpt", "dynamic"):
+        if args.command == "sticker":
+            from .stickers import prepare_sticker_job
+            result = prepare_sticker_job(
+                args.output_dir, theme=args.theme, reference=args.reference,
+                emotion=args.emotion, caption=args.text, style=args.style,
+                animated=args.animated, open_browser=not args.no_open,
+                copy_clipboard=not args.no_copy)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            print("提示词已准备。参考图需由本人上传到 ChatGPT；请保存生成的单张 PNG/GIF。")
+        elif args.command == "sticker-pack":
+            from .stickers import prepare_sticker_pack
+            result = prepare_sticker_pack(
+                args.output_dir, theme=args.theme, reference=args.reference,
+                emotions=args.emotions, style=args.style,
+                animated=args.animated, open_browser=not args.no_open,
+                copy_clipboard=not args.no_copy)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            print("请逐枚生成并下载成品，避免 ChatGPT 将表情合成一张拼图。")
+        elif args.command == "sticker-import":
+            from .stickers import import_sticker
+            result = import_sticker(args.source, args.output_dir,
+                                    max_bytes=args.max_bytes)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        elif args.command == "sticker-export":
+            from .stickers import export_sticker
+            result = export_sticker(args.source, args.destination,
+                                    max_bytes=args.max_bytes)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        elif args.command == "sticker-check":
+            from .stickers import check_sticker
+            result = check_sticker(args.source, max_bytes=args.max_bytes)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            if not result["valid"]:
+                return 2
+        elif args.command in ("chatgpt", "dynamic"):
             from .chatgpt_web import prepare_chatgpt_job
             result = prepare_chatgpt_job(
                 args.theme, args.output_dir, style=args.style,

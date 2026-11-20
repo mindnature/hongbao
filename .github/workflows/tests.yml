@@ -24,6 +24,9 @@ jobs:
           python -m hongbao --help
           python -m hongbao dynamic --help
           python -m hongbao import-gif --help
+          python -m hongbao sticker --help
+          python -m hongbao sticker-pack --help
+          python -m hongbao sticker-import --help
           python -m hongbao gif2mp4 --help
           python -m hongbao check-gif --help
           python -m hongbao motion --help
