@@ -25,6 +25,51 @@ check-gif 会检查是否为真正的多帧 GIF、帧数和时长；gif2mp4 复�
 
 详细说明：docs/gif-first.md。
 
+## V0.7｜表情包双模式：纯文字 / 参考图片
+
+Hongbao 现在除了制作红包封面，也能帮助制作微信表情包（Sticker）。**两条生成路线互斥，任选其一**，默认使用已经登录的 ChatGPT 网页而非 API。网页生成仍由用户自己完成；程序提供专用提示词、打开浏览器和本地导出检查。
+
+### A. 描述主题，原创表情
+
+~~~powershell
+python -m hongbao sticker --theme "戴虎头帽的国风小团子" --emotion "无语" --text "无语了" --style "国风软萌卡通" --output-dir output/sticker-wuyu
+~~~
+
+这会生成 prompt.txt 与 job.json，尝试复制提示词并打开默认浏览器。把提示词粘贴进 ChatGPT，在网页中生成单张角色表情，并下载 PNG。
+
+### B. 上传参考图，保留角色特征
+
+~~~powershell
+python -m hongbao sticker --reference "C:\Users\me\Pictures\my-cat.jpg" --emotion "哈哈" --text "哈哈哈" --style "可爱手绘" --output-dir output/sticker-haha
+~~~
+
+程序只检查本地参考图路径并把路径记录在本地任务清单中；**不会自动上传照片**。你要在 ChatGPT 网页里手动附上这张图片。提示词要求保留同一人物、宠物或 IP 的关键特征。
+
+### 动态表情与导出
+
+两种模式都能加 --animated，要求 ChatGPT 尝试生成真正逐帧动作 GIF（功能可用性以账号为准）。**表情包的动态成品使用 GIF，不是红包封面的 MP4。**
+
+下载文件后执行：
+
+~~~powershell
+python -m hongbao sticker-import "C:\Users\me\Downloads\sticker.png" --output-dir output/sticker-wuyu
+# 动态版本：将上面的文件路径换成实际下载的 sticker.gif
+python -m hongbao sticker-check output/sticker-wuyu/sticker.png
+~~~
+
+生成 original.png（或 original.gif）、sticker.png（或 sticker.gif）、job.json。输出按本地目标尺寸 **240×240、≤500KB**；静态 PNG 保留真实透明区域，动态图 GIF 保留动作并尝试压缩。**不会自动抠除照片原有背景，也不会把棋盘纹理视作真实透明背景。** 本地文件通过检查不等于微信审核成功。
+
+### 一套表情：每个动作独立生成
+
+~~~powershell
+python -m hongbao sticker-pack --theme "橘猫职场小助手" --emotions "哈哈,无语,抱抱,点赞" --style "统一萌系IP" --output-dir output/cat-pack
+python -m hongbao sticker-pack --reference "C:\Users\me\Pictures\cat.jpg" --emotions "开心,委屈,害羞,惊讶" --animated --output-dir output/cat-animated
+~~~
+
+程序为每个情绪独立生成 prompts/01.txt、02.txt 等和 pack.json；用户按顺序在 ChatGPT 中逐张生成并保存，避免得到一张无法直接投稿的拼图。参考图模式推荐保持同一张母版。当前提供的是**逐枚制作与单张导出能力**，尚未自动生成完整专辑所需的横幅、图标或投稿文件包。
+
+完整说明：[表情包双模式教程](docs/stickers.md)。微信开放平台具体规则以 [官方制作指引](https://sticker.weixin.qq.com/) 为准。
+
 ## 1. 安装到 Codex
 
 可直接向 Codex 说：

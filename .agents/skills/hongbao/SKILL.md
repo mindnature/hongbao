@@ -1,11 +1,37 @@
 ---
 name: hongbao
-description: 按主题/照片在已登录的 ChatGPT 网页生成静态红包封面，并将静态原图或 Flow/GIF 视频规范化为微信静态 JPEG、动态 MP4、封面/挂件 PNG 序列帧 ZIP，辅助微信平台上传。
+description: 通过已登录的 ChatGPT 网页制作微信红包封面与表情包。表情包支持文字主题或用户参考图两种方式，并导出静态 PNG、动态 GIF；红包封面保留 JPEG/MP4/PNG ZIP 工作流。
 ---
 
 # Hongbao · 微信红包封面（网页版优先，静态 + 动态）
 
 默认无需 API Key。默认使用已登录 ChatGPT 网页交接：Codex 生成提示词并打开默认浏览器；用户自行粘贴、上传参考照和保存原图；程序负责本地处理。不要抓取 ChatGPT 网页生成输出、Cookie，不绕过任何验证码。
+
+## 表情包制作：两种输入方式（与红包封面区分）
+
+用户说“表情包、贴纸、GIF 表情、微信表情包”时，使用 sticker 相关命令，不能误用红包封面的 957×1278 JPEG 或 960×1280 MP4 标准。
+
+**模式一｜文字主题**（不需要上传图片）：
+    python -m hongbao sticker --theme "Q版国风小狐狸" --emotion "无语" --text "无语了" --style "国风萌系" --output-dir output/wuyu
+
+**模式二｜参考图片**（保留人物/宠物/IP 特征）：
+    python -m hongbao sticker --reference "cat.jpg" --emotion "哈哈" --text "哈哈" --style "萌系" --output-dir output/haha
+
+两个模式必须且只能选一个；需要动态图时添加 --animated。程序准备专门的 ChatGPT 网页提示词，保存 prompt.txt 和 job.json，尝试复制并打开默认浏览器。参考图**必须由用户在 ChatGPT 网页自行上传**；严禁声称 Skill 已自动读取网页、上传文件、获得照片使用授权或生成成品。
+
+用户下载成品 PNG 或 GIF 后：
+    python -m hongbao sticker-import "下载的图片.png" --output-dir output/wuyu
+    python -m hongbao sticker-check output/wuyu/sticker.png
+
+动画版本将输入与检查路径改为 .gif。动态图应保留真正逐帧变化，不接受只有一帧的 GIF。导出尺寸 240×240，单文件本地目标 ≤500KB；真实透明底尽量保留，但如源图无 alpha 应提示无法自动抠图。GIF 不转换为红包封面 MP4，不能混淆两个产品的资产格式。
+
+制作多张：
+    python -m hongbao sticker-pack --theme "国风小狐仙" --emotions "哈哈,无语,抱抱,点赞" --output-dir output/pack
+    python -m hongbao sticker-pack --reference "角色母版.png" --emotions "开心,委屈,震惊,睡觉" --animated --output-dir output/pack
+
+这只会逐个生成独立 ChatGPT 提示词和 pack.json，不会把所有表情合并为一张网格图，也不会自动上传微信投稿或生成全套附加素材。使用参考图时同一母版应贯穿每个情绪；尽量保留身份一致性。若用户希望上传真人/宠物照片，应仅处理他们有使用权的素材。
+
+教程：docs/stickers.md。原有红包封面所有 CLI 和教程保持有效。
 
 ## 默认动态流程：直接在 ChatGPT 网页生成 GIF，然后本地一键处理
 
