@@ -7,6 +7,20 @@ description: 按主题/照片在已登录的 ChatGPT 网页生成静态红包封
 
 默认无需 API Key。默认使用已登录 ChatGPT 网页交接：Codex 生成提示词并打开默认浏览器；用户自行粘贴、上传参考照和保存原图；程序负责本地处理。不要抓取 ChatGPT 网页生成输出、Cookie，不绕过任何验证码。
 
+## 默认动态流程：直接在 ChatGPT 网页生成 GIF，然后本地一键处理
+
+动态封面优先执行：
+    python -m hongbao dynamic --theme "红金凤凰" --style "东方鎏金" --output-dir output/phoenix
+
+该命令生成真正多帧 GIF 的专用提示词并打开已登录的默认浏览器。用户在网页粘贴提示词，按需自行上传授权参考照，**直接生成 GIF 并手动下载**；不需要先生成 PNG，也不需要 Flow。禁止读取 Cookie、抓取网页内容或声称程序已自动下载 GIF。
+
+拿到下载文件后运行：
+    python -m hongbao import-gif "下载的动画.gif" --output-dir output/phoenix --duration 3
+
+这条命令自动检查是否为多帧 GIF、复制保留 original.gif、转换 dynamic.mp4、执行本地 check_video 校验、提取 poster.png 并更新 job.json。用户确认画面后，才进入微信动态素材辅助上传步骤。不能声称微信平台已接受或审核通过。
+
+如果账号尚未提供 GIF 生成功能，则使用静态图 + animate；复杂动作使用 Flow + motion。原 chatgpt --mode gif 与 gif2mp4 继续兼容。
+
 ## 动态封面默认首选：ChatGPT 多帧 GIF → MP4
 
 当用户需要动态红包封面，默认先尝试 ChatGPT 网页 GIF 功能，而不是优先使用静态图 animate 或要求 Flow。ChatGPT Images 2.6 GIF 功能仍在逐步开放；如果当前用户账号没有该能力，不要假称已生成 GIF，改用下述 animate 回退方案。

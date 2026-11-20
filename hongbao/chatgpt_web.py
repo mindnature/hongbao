@@ -129,7 +129,8 @@ def prepare_chatgpt_job(theme: str, directory: str | Path = DEFAULT_DIR, *,
         "chatgpt_url": CHATGPT_URL,
         "next": (
             (f'在 ChatGPT 网页生成 GIF 并手动下载，然后运行：'
-             f'python -m hongbao gif2mp4 "下载的动画.gif" "{directory / "dynamic.mp4"}" --duration 3')
+             f'python -m hongbao import-gif "下载的动画.gif" --output-dir "{directory}" --duration 3；'
+             f'如只需单独转码也可使用 gif2mp4')
             if mode == "gif" else
             (f'在 ChatGPT 网页生成静态图并手动下载，然后运行：'
              f'python -m hongbao import "下载图片路径" --output-dir "{directory}"')

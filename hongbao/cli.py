@@ -14,6 +14,14 @@ def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="hongbao", description="微信红包封面创作和辅助上传")
     sub = parser.add_subparsers(dest="command", required=True)
 
+    dynamic = sub.add_parser("dynamic", help="动态红包：让 ChatGPT 网页直接生成 GIF（默认动态入口）")
+    dynamic.add_argument("--theme", required=True)
+    dynamic.add_argument("--style", default="")
+    dynamic.add_argument("--reference")
+    dynamic.add_argument("--output-dir", default="output/chatgpt")
+    dynamic.add_argument("--no-open", action="store_true")
+    dynamic.add_argument("--no-copy", action="store_true")
+
     web = sub.add_parser("chatgpt", help="默认网页版：准备提示词并打开已登录的默认浏览器")
     web.add_argument("--theme", required=True)
     web.add_argument("--style", default="")
@@ -69,6 +77,11 @@ def make_parser() -> argparse.ArgumentParser:
     animation.add_argument("--focus-y", type=float, default=0.5, help="纵向裁切焦点 0–1")
     animation.add_argument("--poster", help="可选：同时导出 PNG 预览帧")
 
+    impgif = sub.add_parser("import-gif", help="一键导入 GIF、转 MP4、校验并生成预览图")
+    impgif.add_argument("source", help="从 ChatGPT 网页下载的多帧 GIF")
+    impgif.add_argument("--output-dir", default="output/chatgpt")
+    impgif.add_argument("--duration", type=float, default=3.0)
+
     gif = sub.add_parser("gif2mp4", help="检查多帧 GIF 并转为短视频 MP4")
     gif.add_argument("source", help="下载的动画 .gif")
     gif.add_argument("destination", help="生成的 .mp4 路径")
@@ -117,11 +130,12 @@ def make_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = make_parser().parse_args(argv)
     try:
-        if args.command == "chatgpt":
+        if args.command in ("chatgpt", "dynamic"):
             from .chatgpt_web import prepare_chatgpt_job
             result = prepare_chatgpt_job(
                 args.theme, args.output_dir, style=args.style,
-                reference=args.reference, mode=args.mode,
+                reference=args.reference,
+                mode="gif" if args.command == "dynamic" else args.mode,
                 open_browser=not args.no_open, copy_clipboard=not args.no_copy)
             print(json.dumps(result, ensure_ascii=False, indent=2))
             print("请在网页中粘贴 prompt.txt 的内容；如果提供了照片，请自行上传。")
@@ -159,6 +173,11 @@ def main(argv: list[str] | None = None) -> int:
                 poster=args.poster,
             )
             print(json.dumps(asdict(result), ensure_ascii=False, indent=2))
+        elif args.command == "import-gif":
+            from .gif_workflow import import_chatgpt_gif
+            result = import_chatgpt_gif(args.source, args.output_dir,
+                                        duration=args.duration)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
         elif args.command == "check-gif":
             from .gif_workflow import check_gif
             result = check_gif(args.source)

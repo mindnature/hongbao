@@ -187,3 +187,19 @@ ChatGPT 网页生成原图后，保存并执行 hongbao import，就可以使用
 这是程序化装饰动画：新增边缘灯笼、云雾、花瓣并非识别和移动原图中的真实物体；parallax 是软遮罩伪视差，不保证真实图层分离。如需人物眨眼、宠物跳跃等自然动作，仍要用 Flow 或其他视频生成工具制作后再运行 motion 转码。
 
 详细使用说明：docs/animation-presets.md。微信实际上传与审核以官方平台为准，动态 MP4 上传控件仍需本人验证并手动选择。
+
+
+
+## V0.6.0｜ChatGPT 直接生成 GIF，Codex 一键转码
+
+推荐动态工作流不需要静态图中转或 Flow：ChatGPT 网页生成并手动下载 GIF，交给本地命令处理。
+
+    # 直接打开 ChatGPT 并准备 GIF 提示词
+    python -m hongbao dynamic --theme "东方花神与花瓣流光" --style "东方国风" --output-dir output/flower
+
+    # 在 ChatGPT 网页下载 GIF 后，只执行这一条命令
+    python -m hongbao import-gif "C:\Users\me\Downloads\animation.gif" --output-dir output/flower --duration 3
+
+会保存 original.gif、生成 dynamic.mp4、自动检查 MP4 格式并创建 poster.png。原来的 chatgpt --mode gif、gif2mp4、check-gif、animate、motion、frames 都保留。
+
+注意：dynamic 仅通过默认浏览器打开 ChatGPT 并准备提示词，不能从网页自动点击下载；ChatGPT 账号实际是否支持生成 GIF，请以实际页面为准。对微信的动态素材上传仍需要用户本人选择正确栏目。完整说明：docs/gif-quickstart.md。

@@ -69,3 +69,50 @@ def test_animated_gif_to_mp4_and_loop(moving_gif, tmp_path):
     assert moving_gif.exists()
     with pytest.raises(ValueError, match="已存在"):
         gif_to_mp4(moving_gif, dest, duration=3)
+
+
+def test_dynamic_is_gif_first_and_no_browser(tmp_path, monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    from hongbao.cli import main
+    target = tmp_path / "new-gif-job"
+    assert main(["dynamic", "--theme", "金色凤凰", "--output-dir", str(target),
+                 "--no-open", "--no-copy"]) == 0
+    import json
+    job = json.loads((target / "job.json").read_text(encoding="utf-8"))
+    assert job["mode"] == "gif"
+    assert "GIF" in (target / "prompt.txt").read_text(encoding="utf-8")
+
+
+def test_import_gif_rejects_invalid_before_creating_output(tmp_path):
+    from hongbao.gif_workflow import import_chatgpt_gif
+    bad = tmp_path / "bad.gif"
+    Image.new("RGB", (30, 40), "red").save(bad, "GIF")
+    out = tmp_path / "new-folder"
+    with pytest.raises(ValueError, match="只有一帧"):
+        import_chatgpt_gif(bad, out)
+    assert not out.exists()
+
+
+@pytest.mark.skipif(not shutil.which("ffmpeg") or not shutil.which("ffprobe"),
+                    reason="FFmpeg/ffprobe absent")
+def test_import_gif_one_step(moving_gif, tmp_path):
+    import json
+    from hongbao.gif_workflow import import_chatgpt_gif
+    from hongbao.chatgpt_web import prepare_chatgpt_job
+    folder = tmp_path / "gift"
+    prepare_chatgpt_job("国风锦鲤", folder, mode="gif", open_browser=False,
+                        copy_clipboard=False)
+    result = import_chatgpt_gif(moving_gif, folder, duration=1)
+    assert result["video_check"]["valid"]
+    assert result["gif_check"]["valid"]
+    assert Path(result["mp4"]).is_file()
+    assert Path(result["poster"]).is_file()
+    assert Path(result["gif"]).is_file()
+    assert moving_gif.exists()
+    assert check_video(result["mp4"]).valid
+    with Image.open(result["poster"]) as im:
+        assert im.format == "PNG" and im.size == (960, 1280)
+    manifest = json.loads((folder / "job.json").read_text(encoding="utf-8"))
+    assert manifest["mode"] == "gif" and manifest["status"] == "locally_converted"
+    with pytest.raises(ValueError, match="已存在"):
+        import_chatgpt_gif(moving_gif, folder, duration=1)
